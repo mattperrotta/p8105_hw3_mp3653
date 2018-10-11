@@ -1,0 +1,49 @@
+---
+title: "p8105_hw3_mp3653"
+author: "Matthew Perrotta"
+date: "October 10, 2018"
+output: github_document
+---
+
+### Load packages
+```{r}
+library(tidyverse)
+```
+
+# Problem 1
+### Import data
+```{r Import BRFSS_smart2010 data}
+BRFSS = p8105.datasets::brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == 'Overall Health') %>% 
+  filter(response %in% c('Excellent', 'Very good', 'Good', 'Fair', 'Poor')) %>% 
+  mutate(response = factor(response, levels = c('Excellent', 'Very good', 'Good', 'Fair', 'Poor'))) %>% 
+  rename(state = locationabbr, county = locationdesc)
+```
+
+### Questions
+```{r Number of states with 7 observations}
+BRFSS %>% 
+  filter(year == 2002) %>% 
+  group_by(state, county) %>% 
+  summarize(n = n()) %>% 
+  count(state) %>% 
+  filter(nn == 7)
+  
+```
+
+```{r Make a 'spaghetti' plot}
+BRFSS %>%
+  distinct(year, state, county) %>% 
+  group_by(year, state) %>% 
+  summarize(n = n()) %>% 
+  ggplot(aes(x = year, y = n, color = state)) +
+  geom_line() +
+  
+  
+```
+
+```{r}
+
+```
+
