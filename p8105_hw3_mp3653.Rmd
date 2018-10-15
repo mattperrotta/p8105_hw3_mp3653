@@ -36,15 +36,13 @@ brfss %>%
 
 Create a spaghetti plot
 
-```{r Make a 'spaghetti' plot}
+```{r Make a spaghetti plot}
 brfss %>%
   distinct(year, state, county) %>% 
   group_by(year, state) %>% 
   summarize(n = n()) %>% 
   ggplot(aes(x = year, y = n, color = state)) +
   geom_line()
-  
-  
 ```
 
 Create a table displaying the mean of excellent responses across NY counties for the years 2002, 2006, and 2010
@@ -101,7 +99,8 @@ instacart %>%
   group_by(aisle, department) %>% 
   count() %>% 
   ggplot(aes(x = aisle, y = n)) +
-  geom_point()
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 Table of most popular item in the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
@@ -111,7 +110,7 @@ instacart %>%
   group_by(aisle) %>% 
   count(product_name) %>% 
   filter(min_rank(desc(n)) < 2) %>% 
-  rename(number_of_orders = n)
+  rename(number_of_orders = n) %>% 
   knitr::kable()
 ```
 
@@ -150,7 +149,18 @@ ny_noaa %>%
   ggplot(aes(x = year, y = mean_tmax)) +
   geom_point() +
   facet_grid('month') +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none', axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+Two panel plot of of tmax vs tmin and distribution of snowfall
+```{r}
+t_plot = ny_noaa %>% 
+  ggplot(aes(x = tmax, tmin)) +
+  geom_hex()
+
+snow_plot = ny_noaa %>% 
+  filter(snow > 0 & snow < 100) %>% 
+  ggplot(aes(x = snow, fill = year)) +
+  geom_density(alpha = .4, adjust = .5, color = 'blue')
+```
 
