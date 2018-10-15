@@ -10,6 +10,7 @@ output: github_document
 library(tidyverse)
 library(knitr)
 library(patchwork)
+library(hexbin)
 ```
 
 # Problem 1
@@ -23,7 +24,7 @@ brfss = p8105.datasets::brfss_smart2010 %>%
   rename(state = locationabbr, county = locationdesc)
 ```
 
-### Questions
+The number of states with 7 observations:
 ```{r Number of states with 7 observations}
 brfss %>% 
   filter(year == 2002) %>% 
@@ -33,16 +34,21 @@ brfss %>%
   filter(nn == 7)
   
 ```
+There are 3 states with 7 observations; CT, FL, and NC.
 
 Create a spaghetti plot
-
 ```{r Make a spaghetti plot}
 brfss %>%
   distinct(year, state, county) %>% 
   group_by(year, state) %>% 
   summarize(n = n()) %>% 
   ggplot(aes(x = year, y = n, color = state)) +
-  geom_line()
+  geom_line() +
+  labs(
+    title = 'Number of Locations in each State by Year',
+    x = 'Year',
+    y = 'Number of Locations'
+  )
 ```
 
 Create a table displaying the mean of excellent responses across NY counties for the years 2002, 2006, and 2010
@@ -64,7 +70,13 @@ brfss %>%
   summarize(mean_values = mean(data_value/100)) %>% 
   ggplot(aes(x = year, y = mean_values, color = state)) +
   geom_line() +
-  facet_grid(~response)
+  facet_grid(~response) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(
+    title = 'Mean Response Proportion for each State by Year',
+    x = 'Year',
+    y = 'Mean Proportion'
+  )
 ```
 
 # Problem 2
@@ -73,8 +85,16 @@ brfss %>%
 instacart = p8105.datasets::instacart %>% 
   janitor::clean_names()
 ```
-
-DESCRIBE DATA
+The `instacart` dataset is `r nrow(instacart)` rows with `r ncol(instacart)` variables and the dataset is in long format. If looking to distinguish the extent of what was ordered, order_id and product_id can provide the gross extent of how much is ordered and by whom. 
+```{r}
+instacart %>% 
+  distinct(order_id) %>% 
+  nrow()
+instacart %>% 
+  distinct(user_id) %>% 
+  nrow()
+```
+There are 131209 orders among 131209 users, indicating no users ordered more than once. 
 
 Number of aisles
 ```{r number of aisles in instacart}
@@ -98,9 +118,14 @@ Plot of number of items ordered in each aisle
 instacart %>% 
   group_by(aisle, department) %>% 
   count() %>% 
-  ggplot(aes(x = aisle, y = n)) +
+  ggplot(aes(x = aisle, y = n, color = department)) +
   geom_point() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(
+    title = 'Number of Items Ordered from Each Aisle',
+    x = 'Aisle',
+    y = 'Number of Items Ordered'
+  )
 ```
 
 Table of most popular item in the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
@@ -137,8 +162,17 @@ ny_noaa = p8105.datasets::ny_noaa %>%
          tmax = tmax/10, 
          tmin = tmin/10)
 ```
+The `ny_noaa` dataset is `r nrow(ny_noaa)` rows with `r ncol(ny_noaa)` variables and is in long format. Key variables would be `id` which is specific for each station, as well as the date variables. These variables allow for the observation of weather trends overtime for each specific station. There is an extensive amount of data missing, which impedes our ability to properly observe trends. What we observe could be biased by the missing data.
 
-The `ny_noaa` dataset is `r nrow(ny_noaa)` rows by `r ncol(ny_noaa)` columns and is in long format. ....
+Most commonly observed snowfall values
+```{r}
+ny_noaa %>% 
+  select(snow) %>% 
+  group_by(snow) %>% 
+  count() %>% 
+  arrange(desc(n))
+```
+The most common observation is `0mm` of snowfall. This is odd in that it often snows every year in the state of NY. This observation may be due to measurement error in that many stations simply did not record or could not record snowfall. 
 
 Plot of average max temp in the months of January and July for each station across years
 ```{r plot of max temps}
@@ -149,18 +183,35 @@ ny_noaa %>%
   ggplot(aes(x = year, y = mean_tmax)) +
   geom_point() +
   facet_grid('month') +
-  theme(legend.position = 'none', axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(legend.position = 'none', axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(
+    title = 'Average Max Temperature (C) in January and July for each Station by Year',
+    x = 'Year',
+    y = 'Max Temperature (C)'
+  )
 ```
 
 Two panel plot of of tmax vs tmin and distribution of snowfall
 ```{r}
 t_plot = ny_noaa %>% 
-  ggplot(aes(x = tmax, tmin)) +
-  geom_hex()
+  ggplot(aes(x = tmax, y = tmin)) +
+  geom_hex() +
+  labs(
+    title = 'Max Temperature vs. Min Temperature',
+    x = 'Max Temperature (C)',
+    y = 'Min Temperature (C)'
+  )
 
 snow_plot = ny_noaa %>% 
   filter(snow > 0 & snow < 100) %>% 
   ggplot(aes(x = snow, fill = year)) +
-  geom_density(alpha = .4, adjust = .5, color = 'blue')
+  geom_density(alpha = .4, adjust = .5, color = 'blue') +
+  labs(
+    title = 'Distribution of Snowfall by Year',
+    x = 'Snowfall (mm)',
+    y = 'Density'
+  )
+
+(t_plot + snow_plot)
 ```
 
