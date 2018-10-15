@@ -8,12 +8,14 @@ output: github_document
 ### Load packages
 ```{r}
 library(tidyverse)
+library(knitr)
+library(patchwork)
 ```
 
 # Problem 1
 ### Import data
 ```{r Import BRFSS_smart2010 data}
-BRFSS = p8105.datasets::brfss_smart2010 %>% 
+brfss = p8105.datasets::brfss_smart2010 %>% 
   janitor::clean_names() %>% 
   filter(topic == 'Overall Health') %>% 
   filter(response %in% c('Excellent', 'Very good', 'Good', 'Fair', 'Poor')) %>% 
@@ -23,7 +25,7 @@ BRFSS = p8105.datasets::brfss_smart2010 %>%
 
 ### Questions
 ```{r Number of states with 7 observations}
-BRFSS %>% 
+brfss %>% 
   filter(year == 2002) %>% 
   group_by(state, county) %>% 
   summarize(n = n()) %>% 
@@ -32,18 +34,123 @@ BRFSS %>%
   
 ```
 
+Create a spaghetti plot
+
 ```{r Make a 'spaghetti' plot}
-BRFSS %>%
+brfss %>%
   distinct(year, state, county) %>% 
   group_by(year, state) %>% 
   summarize(n = n()) %>% 
   ggplot(aes(x = year, y = n, color = state)) +
+  geom_line()
+  
+  
+```
+
+Create a table displaying the mean of excellent responses across NY counties for the years 2002, 2006, and 2010
+```{r create table}
+brfss %>% 
+  filter(response == 'Excellent',
+         state == 'NY',
+         year %in% c(2002, 2006, 2010)) %>% 
+  group_by(year) %>% 
+  summarize(mean_excellent = mean(data_value/100),
+            sd_excellent = sd(data_value/100)) %>% 
+  knitr::kable()
+```
+
+Create plots displaying average response proportion for each state per year
+```{r plots for average response proportion for each state per year}
+brfss %>% 
+  group_by(state, year, response) %>% 
+  summarize(mean_values = mean(data_value/100)) %>% 
+  ggplot(aes(x = year, y = mean_values, color = state)) +
   geom_line() +
-  
-  
+  facet_grid(~response)
 ```
 
+# Problem 2
+### Import data
+```{r Import instacart data}
+instacart = p8105.datasets::instacart %>% 
+  janitor::clean_names()
+```
+
+DESCRIBE DATA
+
+Number of aisles
+```{r number of aisles in instacart}
+instacart %>% 
+  distinct(aisle_id) %>% 
+  nrow()
+```
+There are 134 aisles
+
+Aisles with the most products ordered
+```{r }
+instacart %>% 
+  group_by(aisle) %>% 
+  count() %>% 
+  arrange(desc(n))
+```
+The top three aisles with the most products ordered are fresh vegatables, fresh fruits, and pacjaged vegetables fruits.
+
+Plot of number of items ordered in each aisle
+```{r Plot of number of items ordered in each aisle}
+instacart %>% 
+  group_by(aisle, department) %>% 
+  count() %>% 
+  ggplot(aes(x = aisle, y = n)) +
+  geom_point()
+```
+
+Table of most popular item in the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
 ```{r}
-
+instacart %>% 
+  filter(aisle %in% c('baking ingredients', 'dog food care', 'packaged vegetables fruits')) %>% 
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  filter(min_rank(desc(n)) < 2) %>% 
+  rename(number_of_orders = n)
+  knitr::kable()
 ```
+
+Table of mean ordering hour each day of the week for Pink Lady Apples and Coffee Ice Cream
+```{r Mean ordering hour for each day of the week}
+instacart %>% 
+  filter(product_name %in% c('Pink Lady Apples', 'Coffee Ice Cream')) %>% 
+  group_by(order_dow, product_name) %>% 
+  summarise(mean_order_hour = round(mean(order_hour_of_day))) %>% 
+  spread(key = order_dow, value = mean_order_hour) %>% 
+  rename(Monday = '0', Tuesday = '1', Wednesday = '2', Thursday = '3', Friday = '4', Saturday = '5', Sunday = '6') %>% #assuming day 0 is monday
+  knitr::kable()
+```
+
+#Problem 3
+### Data import
+```{r Import NOAA data for NY}
+ny_noaa = p8105.datasets::ny_noaa %>% 
+  janitor::clean_names() %>% 
+  separate(date, into = c('year', 'month', 'day'), sep = '-') %>% 
+  mutate(tmax = as.numeric(tmax),
+         tmin = as.numeric(tmin)) %>% 
+  mutate(prcp = prcp/10, 
+         tmax = tmax/10, 
+         tmin = tmin/10)
+```
+
+The `ny_noaa` dataset is `r nrow(ny_noaa)` rows by `r ncol(ny_noaa)` columns and is in long format. ....
+
+Plot of average max temp in the months of January and July for each station across years
+```{r plot of max temps}
+ny_noaa %>% 
+  filter(month %in% c('01', '07')) %>% 
+  group_by(id, year, month) %>% 
+  summarise(mean_tmax = mean(tmax)) %>% 
+  ggplot(aes(x = year, y = mean_tmax)) +
+  geom_point() +
+  facet_grid('month') +
+  theme(legend.position = 'none')
+```
+
 
